@@ -47,6 +47,12 @@ type
   NativeUInt = Cardinal;
 {$endif}
 
+{$ifndef DELPHI7_UP}
+type
+  NativeInt = Integer;
+{$endif}
+
+
 {$ifndef HAS_RAWBYTESTRING}
 type
   RawByteString = AnsiString;
@@ -88,8 +94,11 @@ var
 
 {$ifdef DELPHI}
 // initialize to US format settings (use point as decimal separator for float values)
+
+{$ifdef DELPHI7_UP}
 var
   DefaultFormatSettings: TFormatSettings;
+{$endif}
 
 procedure InitCriticalSection(var Lock: TRTLCriticalSection);
 procedure DoneCriticalSection(var Lock: TRTLCriticalSection);
@@ -237,7 +246,7 @@ begin
   Result := Format('Delphi %.1f for %s-%s', [System.CompilerVersion, PlatformStrings[TOSVersion.Platform],
     ArchitectureStrings[TOSVersion.Architecture]], DefaultFormatSettings);
   {$else}
-  Result := Format('Delphi %.1f for Windows-x86', [CompilerVersion], DefaultFormatSettings);
+  Result := Format('Delphi %.1f for Windows-x86', [CompilerVersion] {$ifdef DELPHI7_UP}, DefaultFormatSettings {$endif});
   {$endif}
 end;
 
@@ -245,8 +254,12 @@ function GetExeFileVersionString: string;
 var
   Ver: LongRec;
 begin
+  {$ifdef DELPHI7_UP}
   Ver := LongRec(GetFileVersion(Paramstr(0)));
   Result := Format('%u.%u', [Ver.Hi, Ver.Lo]);
+  {$else}
+     Result:='???';
+  {$endif}
 end;
 
 {$ifndef HAS_WSTRPOS}
@@ -291,7 +304,9 @@ initialization
 {$ifdef DELPHIXE_UP}
   DefaultFormatSettings := TFormatSettings.Create('en-US');
 {$else}
+  {$ifdef DELPHI7_UP}
   GetLocaleFormatSettings(1033, DefaultFormatSettings);
+  {$endif}
 {$endif}
 {$endif}
 {$ifdef FPC}
