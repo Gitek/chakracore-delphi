@@ -325,6 +325,7 @@ type
     class procedure RegisterNamedProperty(AInstance: JsValueRef; const AName: UnicodeString;
       Configurable, Enumerable, Writable: Boolean; Value: JsValueRef); overload; virtual;
     class procedure RegisterProperties(AInstance: JsValueRef); virtual;
+    class function isNativeObject(aClass:TClass): boolean; virtual; //Gitek;
   public
     constructor Create(Args: PJsValueRef = nil; ArgCount: Word = 0; AFinalize: Boolean = False); overload; virtual;
     constructor Create(const Args: array of JsValueRef; AFinalize: Boolean = False); overload; virtual;
@@ -1518,7 +1519,7 @@ var
 begin
   Result := nil;
 
-  if Self.ClassParent <> TNativeObject then
+  if not isNativeObject(self.ClassParent) then //gitek
   begin
     Info := TChakraCoreContext.CurrentContext.FindClassInfo(Self);
     if Assigned(Info) then
@@ -1532,7 +1533,7 @@ var
 begin
   Result := nil;
 
-  if Self.ClassParent <> TNativeObject then
+  if not isNativeObject(self.ClassParent) then //gitek
   begin
     Info := TChakraCoreContext.CurrentContext.FindClassInfo(TNativeClass(Self.ClassParent));
     if Assigned(Info) then
@@ -1556,7 +1557,7 @@ var
   ParentArgs: JsValueRefArray;
 begin
   ParentConstructor := FindParentConstructor;
-  if Assigned(ParentConstructor) and (Self.ClassParent <> TNativeObject) then
+  if Assigned(ParentConstructor) and (not isNativeObject(Self.ClassParent)) then //Gitek
   begin
     // pass thisarg + args
     SetLength(ParentArgs, ArgCount + 1);
@@ -1569,10 +1570,27 @@ end;
 
 class function TNativeObject.InitializePrototype(AConstructor: JsValueRef): JsValueRef;
 begin
-  if Self.ClassParent = TNativeObject then
+  if isNativeObject(self.ClassParent) then // Gitek
     Result := JsGetProperty(AConstructor, 'prototype')
   else
     Result := JsCreateObject(JsGetProperty(FindParentConstructor, 'prototype'));
+end;
+
+class function TNativeObject.isNativeObject(aClass: TClass): boolean;
+var
+  c: TClass;
+  begin
+    result:=false;
+    c:=aClass;
+    while aClass<>nil do
+    begin
+      if aClass=TNativeObject then
+      begin
+        result:=True;
+        break;
+      end;
+      aClass:=aClass.ClassParent;
+   end;
 end;
 
 class procedure TNativeObject.RegisterClassMethod(AConstructor: JsValueRef; const AName: UnicodeString; AMethod: Pointer; UseStrictRules: Boolean);
@@ -1686,6 +1704,7 @@ var
   ConstructorName: UnicodeString;
 begin
   if Self = TNativeObject then // only project descendants
+  //if isNativeObject(Self) then //gitek
     Exit;
 
   ConstructorName := AName;
